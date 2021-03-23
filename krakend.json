@@ -1,0 +1,130 @@
+{
+    "version": 2,
+    "timeout": "3000ms",
+    "host": [ "http://json-server" ],
+    "extra_config": {
+        "github_com/devopsfaith/krakend-gologging": {
+          "level":  "DEBUG",
+          "prefix": "[KRAKEND]",
+          "syslog": false,
+          "stdout": true
+        }, 
+        "github_com/devopsfaith/krakend-cors": {
+            "allow_origins": [ "http://localhost:8080", "http://localhost:3000" ],
+            "allow_methods": [ "POST", "GET", "PUT" ],
+            "allow_headers": ["Origin", "Authorization", "Content-Type", "User-Agent", "Accept"],
+            "expose_headers": ["Content-Length"],
+            "max_age": "12h"
+        }
+    },
+    "endpoints": [
+        {
+            "endpoint": "/html",
+            "output_encoding": "no-op",
+            "headers_to_pass": [
+                "User-Agent",
+                "Accept"
+            ],
+            "backend": [
+                {
+                    "url_pattern": "/",
+                    "host": [ "http://nginx", "http://apache" ],
+                    "encoding": "no-op"
+                }
+            ]
+        },
+        {
+            "endpoint": "/public",
+            "backend": [
+              {
+                "host": [ "https://api.github.com" ],
+                "url_pattern": "/users/nandosb",
+                "whitelist": [
+                  "avatar_url",
+                  "name",
+                  "company",
+                  "blog",
+                  "location",
+                  "mail",
+                  "hireable",
+                  "followers",
+                  "public_repos",
+                  "public_gists"
+                ],
+                "mapping": { "blog": "website" },
+                "group": "github"
+              },
+              {
+                "host": [ "https://api.bitbucket.org" ],
+                "url_pattern": "/2.0/users/nandosb",
+                "whitelist": [
+                  "links.avatar",
+                  "display_name",
+                  "website",
+                  "location"
+                ],
+                "mapping": { "display_name": "name" },
+                "group": "bitbucket"
+              }
+            ]
+        },
+        {
+            "endpoint": "/posts",
+            "headers_to_pass":[  
+                "*"
+            ],
+            "querystring_params":[  
+                "*"
+            ],
+            "backend": [
+                {
+                    "url_pattern": "/posts",
+                    "is_collection": true,
+                    "mapping": {
+                        "collection": "posts"
+                    }
+                }
+            ]
+        },
+        {
+            "endpoint": "/posts/{id}",
+            "backend": [
+                {
+                    "url_pattern": "/posts/{id}"
+                }
+            ]
+        },
+        {
+            "endpoint": "/posts/{id}",
+            "method": "PUT",
+            "backend": [
+                {
+                    "method": "GET",
+                    "url_pattern": "/posts/{id}",
+                    "extra_config": {
+                        "github.com/devopsfaith/krakend-martian":
+                          {
+                              "body.Modifier": {
+                                  "scope": ["response"],
+                                  "body": "eyJtc2ciOiJ1cGRhdGVkISJ9"
+                              }
+                          }
+                    }
+                }
+            ]
+        },
+        {
+            "endpoint": "/posts/{id}/comments",
+            "backend": [
+                {
+                    "url_pattern": "/posts/{id}/comments",
+                    "is_collection": true,
+                    "mapping": {
+                        "collection": "comments"
+                    }
+                }
+            ]
+        }
+
+    ]
+}
